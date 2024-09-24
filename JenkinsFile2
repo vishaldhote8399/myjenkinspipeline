@@ -1,0 +1,25 @@
+pipeline {
+    agent any
+    
+    environment{
+        //This is is our custom define envorment veriable we can use this veriable In any stage in this script
+        CUSTOM_ENV_VERIABLE = '555'
+    }
+
+    stages {
+        
+        stage('Building') {
+            steps {
+                echo 'The Code will be now be built into an artifact'
+                echo "building version ${CUSTOM_ENV_VERIABLE}"
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'The software will now be deployed!'
+                //jenkins also provide Env veriable here we use that one
+                echo "Jenkins provide env veriable  ${BUILD_NUMBER}"
+            }
+        }
+    }    
+}
