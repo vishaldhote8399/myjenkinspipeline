@@ -1,0 +1,50 @@
+pipeline {
+    agent any
+    
+    stages {
+        
+        stage('Git repo Cloning') {
+            steps {
+                git credentialsId: 'any_id_you_want_to_give', url: 'git@github.com:kapilthakre/Jenkins-simple-webapp.git'
+            }
+        }
+        stage('Building Docker Image') {
+            steps {
+                sh 'docker build -t myimage .'
+            }
+        }
+        stage('Stoping & Removing Any Existing Container') {
+            steps {
+                sh '''if docker stop mycontainer; then
+                        echo "Succefully stoped running \'mycontainer\'........"
+                    else
+                        echo "No container is running with this name \'mycontainer\'...."
+                    fi'''
+                    
+                    
+                sh '''if docker rm mycontainer; then
+                        echo "Succefully remove \'mycontainer\'.........."
+                    else
+                       echo "mycontainer is not exist..........."
+                    fi '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh 'docker run -d --name mycontainer -p 80:80 myimage'
+            }
+        }
+    }
+    
+    post{
+        failure{
+            echo 'Build was failed'
+        }
+        
+        success{
+             echo 'Successfull Build'
+        }
+        
+    }
+}
