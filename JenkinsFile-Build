@@ -1,0 +1,69 @@
+//Before runNing this pipeline plz configure git repo ssh key on jenkin,
+//Install ssh agent plugin in jenkins, then add aws server private key
+//This pipeline first Get the Data from git repo using ssh, upload that cloned git Data on our AWS Server, create dir Build docker images and 
+//Start the container on aws server that's it.
+
+pipeline {
+    
+    agent any
+    stages {
+        stage('Git repo Cloning'){
+            steps{
+                //this git data is going to stored in jenkins workspace under the angular_application dir.
+                git branch: 'main', credentialsId: 'Gitrepo_ssh', url: 'git@github.com:kapilthakre/Docker-Angular-Application.git'
+                echo "chechking working dir.............${WORKSPACE}"
+            }
+        }
+        
+        stage('Creating projectv1 Folder on AWS Server'){
+             steps{
+                 sshagent(['aws-server-key']) { 
+                     
+                    sh '''ssh -o "StrictHostKeyChecking no" ubuntu@65.2.128.164 '
+                        if mkdir projectv1; then
+                            echo "Succefully created project v1 dir.........."
+                        else
+                            echo "projectv1 dir already exist..........."
+                        fi
+                        '
+                        '''
+                 }
+             }
+        }
+        
+        stage('Upload Git Data on AWS Server') {
+            steps {
+                 sshagent(['aws-server-key']) {
+                        //Transfer git repo data from jenkins worksapce dir to aws server projectv1 dir.
+                        sh 'scp -r ${WORKSPACE}/* ubuntu@65.2.128.164:/home/ubuntu/projectv1'
+                    }
+            }
+        }
+        
+        stage('Build') {
+            //Building an Angular application docker image.
+            steps {
+                 sshagent(['aws-server-key']) {
+                        sh '''ssh ubuntu@65.2.128.164 '
+                        cd /home/ubuntu/projectv1
+                        docker-compose build
+                        '
+                        '''
+                    }
+            }
+        }
+        
+        stage('Deploy') {
+            //start the docker container
+            steps {
+                 sshagent(['aws-server-key']) {
+                        sh '''ssh ubuntu@65.2.128.164 '
+                        cd /home/ubuntu/projectv1
+                        docker-compose up -d
+                        '
+                        '''
+                    }            
+            }
+        }
+    }
+}
